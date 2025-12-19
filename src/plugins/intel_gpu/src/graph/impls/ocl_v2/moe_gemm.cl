@@ -49,7 +49,7 @@ KERNEL(moe_gemm)(OPTIONAL_SHAPE_INFO_ARG
         , local int* slm
 #endif
 ) {
-    uint batch = get_group_id(2);
+    uint batch = get_group_id(2) / ugemm_moe_sg_per_wg_k;
     int input_offset = input_offset_per_expert[batch];
 
     #ifdef IS_GENERATE
@@ -78,6 +78,7 @@ KERNEL(moe_gemm)(OPTIONAL_SHAPE_INFO_ARG
 
     uint sg_i = sub_group_broadcast(get_local_id(0)/SUBGROUP_SIZE, 0);
     uint sg_j = sub_group_broadcast(get_local_id(1), 0);
+    uint sg_k = sub_group_broadcast(get_local_id(2), 0);
 
     uint wg_i0 = get_group_id(0) * ugemm_moe_wg_tile_m;
     uint wg_j0 = get_group_id(1) * ugemm_moe_wg_tile_n;
@@ -95,9 +96,9 @@ KERNEL(moe_gemm)(OPTIONAL_SHAPE_INFO_ARG
     if (wg_j0 >= cur_n_tokens)
         return;     /* early exit if outside batch */
 #ifdef USE_SLM
-    ugemm_moe_c_type c_tile = ugemm_moe(weight_ptr, ld_weight, input_ptr, ld_input, m, cur_n_tokens, k, wg_i0, wg_j0, 0, sg_i, sg_j, slm
+    ugemm_moe_c_type c_tile = ugemm_moe(weight_ptr, ld_weight, input_ptr, ld_input, m, cur_n_tokens, k, wg_i0, wg_j0, 0, sg_i, sg_j, sg_k, slm
 #else
-    ugemm_moe_c_type c_tile = ugemm_moe(weight_ptr, ld_weight, input_ptr, ld_input, m, cur_n_tokens, k, wg_i0, wg_j0, 0, sg_i, sg_j, 0
+    ugemm_moe_c_type c_tile = ugemm_moe(weight_ptr, ld_weight, input_ptr, ld_input, m, cur_n_tokens, k, wg_i0, wg_j0, 0, sg_i, sg_j, sg_k, 0
 #endif
 #ifdef WEIGHT_COMPRESSED_INT4
                                         , weight_scales
