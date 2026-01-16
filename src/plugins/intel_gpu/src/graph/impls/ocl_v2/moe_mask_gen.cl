@@ -4,6 +4,12 @@
 
 #include "include/batch_headers/common.cl"
 
+#ifdef DO_PRINT
+#define VPRINT(...) printf(__VA_ARGS__)
+#else
+#define VPRINT(...)
+#endif
+
 KERNEL(moe_mask_gen)(
     OPTIONAL_SHAPE_INFO_ARG
     const __global INPUT0_TYPE* topk_idx,
@@ -38,6 +44,7 @@ KERNEL(moe_mask_gen)(
 
     if ((expert_id + 1) == get_local_size(0)) {
         num_actual_used_experts[0] = experts_id_iter + is_used;
+        VPRINT("moe_mask_gen:: num_actual_used_experts = %d\n", num_actual_used_experts[0]);
     }
 
     if (num_tokens_per_curr_expert == 0) {
@@ -47,6 +54,7 @@ KERNEL(moe_mask_gen)(
     experts_info_start_idx[experts_id_iter] = tokens_per_expert_iter;
     experts_id[experts_id_iter] = expert_id;
     tokens_lens_per_expert[experts_id_iter] = num_tokens_per_curr_expert;
+    VPRINT("moe_mask_gen:: expert[%d (from orig #%d)] token length = %d\n", experts_id_iter, expert_id, num_tokens_per_curr_expert);
 
     int token_idx = 0;
     for (int t = 0; t < num_tokens; ++t) {

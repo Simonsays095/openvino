@@ -8,6 +8,7 @@
 #include "../primitive_ocl_base.hpp"
 #include "../utils/kernel_generator.hpp"
 #include "intel_gpu/primitives/moe_mask_gen.hpp"
+#include "intel_gpu/runtime/debug_configuration.hpp"
 
 namespace ov::intel_gpu::ocl {
 namespace {
@@ -22,6 +23,11 @@ protected:
 
         auto prim = params.typed_desc<moe_mask_gen>();
         jit.make("NUM_EXPERTS_PER_TOKEN", prim->num_experts_per_token);
+
+        if (ov::intel_gpu::ExecutionConfig::get_verbose() >= 4) {
+            GPU_DEBUG_TRACE_DETAIL << "Enabling moe mask detail prints" << std::endl;
+            jit.make("DO_PRINT", 1);
+        }
 
         return jit;
     }
